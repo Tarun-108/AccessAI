@@ -43,7 +43,7 @@ with sync_playwright() as p:
     page = context.new_page()
 
     # Navigate to the target URL
-    url = "https://example.com"  # Replace with your target URL
+    url = "https://www.iana.org/help/example-domains"  # Replace with your target URL
     page.goto(url)
 
     # Extract styles
