@@ -1,61 +1,100 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Container } from '@mui/material';
-import GradientBackground from '../components/GradientBackground';
-import ScoreCard from '../components/ScoreCard';
-import ToggleComparison from '../components/ToggleComparison';
+import React, { useEffect, useState } from "react";
+import { Box, Container, Typography } from "@mui/material";
+import GradientBackground from "../components/GradientBackground";
+import ScoreCard from "../components/ScoreCard";
+import ToggleComparison from "../components/ToggleComparison";
+import { useLocation, useNavigate } from "react-router-dom";
+import { LOCAL_STORAGE_KEY } from "./HomePage";
+import axios from "../utils/axios";
 
 const ReportPage = () => {
+  const navigate = useNavigate();
+  const [suggestions, setSuggestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [oldCode, setOldCode] = useState('<h1 ">Old Page</h1>');
-  const [newCode, setNewCode] = useState('<h1 style="color: green;">New Page</h1>');
-  const oldPage = '<h1 style="color: red;">Old Page</h1>';
-  const newPage = '<h1 style="color: green;">New Page</h1>';
+  const [newCode, setNewCode] = useState(
+    '<h1 style="color: green;">New Page</h1>'
+  );
+  const { state } = useLocation();
 
   useEffect(() => {
     const fetchCodes = async () => {
-      try {
-        // Retrieve oldCode from localStorage
-        const localOldCode = localStorage.getItem('oldCode');
-        if (localOldCode) {
-          setOldCode(localOldCode);
-        } else {
-          // If not in localStorage, fetch from the backend
-          const oldCodeResponse = await fetch('/api/oldCode'); // Replace with actual API endpoint
-          if (oldCodeResponse.ok) {
-            const oldCodeFromBackend = await oldCodeResponse.text();
-            setOldCode(oldCodeFromBackend);
-          } else {
-            console.error('Failed to fetch oldCode from the backend');
-          }
+      console.log("state: ", state);
+      if (!state?.method || (!state?.url && state?.method === "url")) {
+        setError("Invalid method or URL");
+        navigate("/");
+        return;
+      }
+      const { method, url } = state;
+      if (method === "url") {
+        const response = await fetch(url);
+        if (!response.ok) {
+          setError("Failed to fetch HTML content");
+          return;
         }
-
-        // Always fetch newCode from the backend
-        const newCodeResponse = await fetch('/api/newCode'); // Replace with actual API endpoint
-        if (newCodeResponse.ok) {
-          const newCodeFromBackend = await newCodeResponse.text();
-          setNewCode(newCodeFromBackend);
-        } else {
-          console.error('Failed to fetch newCode from the backend');
-        }
-      } catch (error) {
-        console.error('Error fetching codes:', error);
+        const htmlContent = response.text(); // Get response as text (HTML)
+        setOldCode(htmlContent);
+      } else {
+        const code = localStorage.getItem(LOCAL_STORAGE_KEY);
+        setOldCode(JSON.parse(code));
       }
     };
-
-    fetchCodes();
-    console.log('oldCode'+oldCode );
+    const analyzeHTML = async () => {
+      await fetchCodes();
+      const reqBody = {};
+      if (state.method === "url") {
+        reqBody.is_url = true;
+        reqBody.content = state.url;
+      } else {
+        reqBody.is_url = false;
+        const code = localStorage.getItem(LOCAL_STORAGE_KEY);
+        reqBody.content = JSON.parse(code);
+      }
+      console.log("body: ", reqBody);
+      const { data } = await axios.post("/analyze", reqBody);
+      console.log("server data: ", data);
+      setSuggestions(data);
+      setNewCode(data.updated_dom);
+      
+      setLoading(false);
+    };
+    analyzeHTML();
   }, []);
 
   return (
     // <GradientBackground>
-    <Container maxWidth="lg">
-      <ScoreCard />
-      <ToggleComparison
-        oldCode={oldCode}
-        newCode={newCode}
-        oldPage={oldPage}
-        newPage={newPage}
-      />
-    </Container>
+    <Box
+      sx={{
+        maxHeight: "100vh",
+        display: "flex",
+        justifyContent: "space-between",
+      }}
+    >
+      {/* <ScoreCard /> */}
+      <Container sx={{ width: "50%" }}>
+      {/* IMPROVEMENTS SECTION */}
+      <Typography variant="h3">Improvements: </Typography>
+      {/* {suggestions.map((suggestion) => (
+        <Box>
+          <h2>{suggestion.title}</h2>
+          <ul>
+            {suggestion.items.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </Box>
+      ))} */}
+      </Container>
+      <Box
+        sx={{ width: "50%", border: "1px solid red", height: "100vh" }}
+      >
+        <ToggleComparison
+          oldCode={oldCode}
+          newCode={newCode}
+        />
+      </Box>
+    </Box>
     // </GradientBackground>
   );
 };

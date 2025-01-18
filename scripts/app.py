@@ -5,11 +5,14 @@ from flask_cors import CORS
 from playground.tag_improver import generate_caption, generate_aria_label, check_for_label
 from playground.utils import get_selector, decode_image
 from playground.keyboard_navigation_checker import check_dynamic_tab_order
+from playground.heading_improver import heading_improver
 import os
 import base64
 import cv2
 from skimage.metrics import structural_similarity as ssim
 from improve_contrast import improve_text_contrast
+
+from playground.accessibility_score import get_accessibility_score
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -18,6 +21,7 @@ CORS(app)  # Enable CORS for all routes
 def improve_img_tag(img_tag, changes):
     """Add alt text to img tags if not present."""
     if not img_tag.get("alt"):
+        print(f"checking for img tag")
         img_url = img_tag.get("src", None)
         if img_url is not None:
             captions = generate_caption(img_url)
@@ -130,10 +134,20 @@ def process_dom(content, is_url):
 
             for img_tag in soup.find_all("img"):
                 improve_img_tag(img_tag, changes)
-            
+        except Exception as e:
+            print("error in img tag", e)
+        finally:
+            print("img tag done calls done")
+
+        try:             
             for form in soup.find_all("form"):
                 improve_form_tag(form, changes)
+        except Exception as e:  
+            print("error in form tag", e)
+        finally:
+            print("form tag done calls done")
 
+<<<<<<< HEAD
             # Improve p tags
             for p_tag in soup.find_all("p"):
                 improve_para_element(p_tag, changes)
@@ -144,6 +158,24 @@ def process_dom(content, is_url):
             print("error in process_dom: ", e)
             raise e
 
+=======
+        # Improve contrast
+        try:
+            improve_text_contrast(page, changes)
+        except Exception as e:
+            print("error in contrast", e)
+        finally:
+            print("contrast done calls done")
+
+        try:
+            heading_warnings = heading_improver(soup)
+
+        except Exception as e:
+            print("error in heading warning: ", e)
+
+        browser.close()
+        return str(soup), changes, focusable, discrepancies, heading_warnings
+>>>>>>> 8e98a3c81b2347f00c9cc61d863f2c39155f4912
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -158,16 +190,39 @@ def analyze():
         return jsonify({"error": "Content is required"}), 400
 
     try:
-        updated_dom, changes, focusable, discrepancies = process_dom(content, is_url)
+        try:
+            initial_score = get_accessibility_score(content, is_url)
+            # initial_score = {"test": "test"}
+        except Exception as e:
+            print("error in initial score", e)
+            initial_score = {"error": str(e)}
+        finally:
+            updated_dom, changes, focusable, discrepancies, heading_warnings = process_dom(content, is_url)
+            
+        try:
+            updated_score = get_accessibility_score(updated_dom, False)
+        except Exception as e:
+            print("error in initial score", e)
+            updated_score = {"error": str(e)}
+
+        return jsonify({"updated_dom": updated_dom, "changes": changes, "initial_score": initial_score, "updated_score": updated_score})
+       
     except Exception as e:
         print("error: ", e)
         return jsonify({"error": str(e)}), 500
+    
+
     return jsonify(
             {
                 "updated_dom": updated_dom, 
                 "changes": changes,
-                "focusable_elements": focusable,
-                "discrepancies": discrepancies
+                "tab":{
+                    "focusable_elements": focusable,
+                    "discrepancies": discrepancies
+                },
+                "heading_warnings": heading_warnings,
+                "initial_score": initial_score, 
+                "updated_score": updated_score
             }
         )
     
