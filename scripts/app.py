@@ -3,6 +3,8 @@ from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from playground.tag_improver import generate_caption, generate_label
 
+from improve_contrast import improve_text_contrast
+
 app = Flask(__name__)
 
 def get_selector(tag):
@@ -107,19 +109,16 @@ def process_dom(content, is_url):
         # Get the page content
         html_content = page.content()
         soup = BeautifulSoup(html_content, "html.parser")
-        try:
-            # Improve img tags
-            for img_tag in soup.find_all("img"):
-                improve_img_tag(img_tag, changes)
+        # Improve img tags
+        for img_tag in soup.find_all("img"):
+            improve_img_tag(img_tag, changes)
             
-            for form in soup.find_all("form"):
-                improve_form_tag(form, changes)
+        for form in soup.find_all("form"):
+            improve_form_tag(form, changes)
 
-            # Improve p tags
-            for p_tag in soup.find_all("p"):
-                improve_para_element(p_tag, changes)
-        except Exception as e:
-            print("error in process_dom: ", e)
+        # Improve contrast
+        improve_text_contrast(page, changes)
+
 
         browser.close()
         return (str(soup), changes)
