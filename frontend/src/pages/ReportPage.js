@@ -13,8 +13,8 @@ const ReportPage = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [oldCode, setOldCode] = useState('');
-  const [newCode, setNewCode] = useState('');
+  const [oldCode, setOldCode] = useState("");
+  const [newCode, setNewCode] = useState("");
   const { state } = useLocation();
 
   useEffect(() => {
@@ -61,12 +61,6 @@ const ReportPage = () => {
     analyzeHTML();
   }, []);
 
-  if (loading) {
-    <Box sx={{ display: "flex" }}>
-      <CircularProgress />
-    </Box>;
-  }
-
   return (
     // <GradientBackground>
     <Box
@@ -80,6 +74,11 @@ const ReportPage = () => {
       <Container sx={{ width: "50%" }}>
         {/* IMPROVEMENTS SECTION */}
         <Typography variant="h3">Improvements: </Typography>
+        {loading && (
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <CircularProgress />
+          </Box>
+        )}
         {/* {suggestions.map((suggestion) => (
         <Box>
           <h2>{suggestion.title}</h2>
