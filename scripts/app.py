@@ -5,7 +5,7 @@ from playground.tag_improver import generate_caption, generate_aria_label, check
 from playground.utils import get_selector
 from playground.keyboard_navigation_checker import check_dynamic_tab_order
 
-from heading_improver.py import heading_improver
+from playground.heading_improver import heading_improver
 from improve_contrast import improve_text_contrast
 
 app = Flask(__name__)
@@ -123,11 +123,14 @@ def process_dom(content, is_url):
                 improve_para_element(p_tag, changes)
             
             focusable, discrepancies = check_dynamic_tab_order(page)
+
+            heading_warnings = heading_improver(soup)
+
         except Exception as e:
             print("error in process_dom: ", e)
 
         browser.close()
-        return str(soup), changes, focusable, discrepancies
+        return str(soup), changes, focusable, discrepancies, heading_warnings
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -142,16 +145,21 @@ def analyze():
         return jsonify({"error": "Content is required"}), 400
 
     try:
-        updated_dom, changes, focusable, discrepancies = process_dom(content, is_url)
+        updated_dom, changes, focusable, discrepancies, heading_warnings = process_dom(content, is_url)
     except Exception as e:
         print("error: ", e)
         return jsonify({"error": str(e)}), 500
+    
+
     return jsonify(
             {
                 "updated_dom": updated_dom, 
                 "changes": changes,
-                "focusable_elements": focusable,
-                "discrepancies": discrepancies
+                "tab":{
+                    "focusable_elements": focusable,
+                    "discrepancies": discrepancies
+                },
+                "heading_warnings": heading_warnings
             }
         )
 
