@@ -37,7 +37,7 @@ const ToggleComparison = ({ oldCode, newCode }) => {
           Old Version
           <Button onClick={() => setShowCode(!showCode)}>
             {" "}
-            {showCode ? "Show code" : "Show page"}{" "}
+            {showCode ? "Show page" : "Show code"}{" "}
           </Button>
         </Box>
         {showCode ? (
