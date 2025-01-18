@@ -1,17 +1,27 @@
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
+from flask_cors import CORS
 from playground.tag_improver import generate_caption, generate_aria_label, check_for_label
 from playground.utils import get_selector, take_screenshot, compare_screenshots
 from playground.keyboard_navigation_checker import check_dynamic_tab_order
+from playground.heading_improver import heading_improver
+import os
+import base64
+import cv2
+from skimage.metrics import structural_similarity as ssim
 from improve_contrast import improve_text_contrast
 
+from playground.accessibility_score import get_accessibility_score
+
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 
 def improve_img_tag(img_tag, changes):
     """Add alt text to img tags if not present."""
     if not img_tag.get("alt"):
+        print(f"checking for img tag")
         img_url = img_tag.get("src", None)
         if img_url is not None:
             captions = generate_caption(img_url)
@@ -112,33 +122,57 @@ def process_dom(content, is_url):
             page.set_content(content)
 
         # Get the page content
-        html_content = page.content()
-        soup = BeautifulSoup(html_content, "html.parser")
+        # html_content = page.content()
+        # soup = BeautifulSoup(html_content, "html.parser")
         
+        try:
+            improve_text_contrast(page, changes)
+        except Exception as e:
+            print("error in improve_text_contrast: ", e)
+
+        try:
+            focusable, discrepancies = check_dynamic_tab_order(page)
+        except Exception as e:
+            focusable = []
+            discrepancies = []
+            print("error in check_dynamic_tab_order: ", e)
+
+        soup = BeautifulSoup(page.content(), "html.parser")
+
         try:
             for img_tag in soup.find_all("img"):
                 improve_img_tag(img_tag, changes)
-            
+        except  Exception as e:
+            print("error in improve_img_tag: ", e)
+        
+        try:
             for form in soup.find_all("form"):
                 improve_form_tag(form, changes)
+        except Exception as e:
+            print("error in improve_form_tag: ", e)
 
-            # Improve contrast
-            improve_text_contrast(page, changes)
 
-            # Improve p tags
+        # Improve p tags
+        try:
             for p_tag in soup.find_all("p"):
                 improve_para_element(p_tag, changes)
-            
-            focusable, discrepancies = check_dynamic_tab_order(page)
         except Exception as e:
-            print("error in process_dom: ", e)
+            print("error in improve_para_element: ", e)
 
+
+        try:
+            heading_warnings = heading_warnings(soup)
+        except Exception as e:
+            heading_warnings = []
+            print("error in heading_warnings: ", e)
+        
         browser.close()
         new_html = str(soup)
     original = take_screenshot(html_content)
     now = take_screenshot(new_html)
     diff, score = compare_screenshots(original, now)
-    return new_html, changes, focusable, discrepancies, diff, score
+    return new_html, changes, focusable, discrepancies, diff, score, heading_warnings
+
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -152,11 +186,28 @@ def analyze():
     if not content:
         return jsonify({"error": "Content is required"}), 400
 
-    # try:
-    updated_dom, changes, focusable, discrepancies, diff, score = process_dom(content, is_url)  
-    # except Exception as e:
-    #     print("error: ", e)
-    #     return jsonify({"error": str(e)}), 500
+
+    try:
+        try:
+            initial_score = get_accessibility_score(content, is_url)
+            # initial_score = {"test": "test"}
+        except Exception as e:
+            print("error in initial score", e)
+            initial_score = {"error": str(e)}
+        
+        updated_dom, changes, focusable, discrepancies, diff, score, heading_warnings = process_dom(content, is_url)
+            
+        try:
+            updated_score = get_accessibility_score(updated_dom, False)
+        except Exception as e:
+            print("error in initial score", e)
+            updated_score = {"error": str(e)}
+
+    except Exception as e:
+        print("error: ", e)
+        return jsonify({"error": str(e)}), 500
+    
+
     return jsonify(
             {
                 "updated_dom": updated_dom, 
@@ -168,8 +219,14 @@ def analyze():
                 "changed_in": {
                     "changes": diff, 
                     "score": score
-                }
-                
+                },
+                "tab":{
+                    "focusable_elements": focusable,
+                    "discrepancies": discrepancies
+                },
+                "heading_warnings": heading_warnings,
+                "initial_score": initial_score, 
+                "updated_score": updated_score,
             }
         )
     
