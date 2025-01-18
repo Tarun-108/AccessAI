@@ -2,10 +2,11 @@ from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from playground.tag_improver import generate_caption, generate_label
-
+from flask_cors import CORS
 from improve_contrast import improve_text_contrast
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 def get_selector(tag):
     if tag.get("id"):
