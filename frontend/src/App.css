@@ -36,3 +36,22 @@
     transform: rotate(360deg);
   }
 }
+
+
+#main-content::after {
+  content: "";
+  background-image: url("../public/grid.svg");
+  z-index: 1;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  opacity: 0.4;
+  filter: invert(1);
+}
+
+/* #aibox{
+  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  background: linear-gradient(to right, rgb(245, 158, 11), rgb(234, 88, 12), rgb(234, 179, 8))
+} */

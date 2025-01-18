@@ -1,123 +1,150 @@
-import React, { useState } from 'react';
-import { Box, Button, Typography, Grid, TextareaAutosize } from '@mui/material';
+import React, { useState } from "react";
+import {
+  Box,
+  Button,
+  Typography,
+  Grid,
+  TextareaAutosize,
+  Page,
+} from "@mui/material";
 
-const ToggleComparison = ({ oldCode: initialOldCode, newCode: initialNewCode }) => {
-  const [oldCode, setOldCode] = useState(initialOldCode);
-  const [newCode, setNewCode] = useState(initialNewCode);
-  const [showOldCode, setShowOldCode] = useState(false);
-  const [showNewCode, setShowNewCode] = useState(false);
-//   console.log(oldCode);
-  const oldCodeStored = localStorage.getItem('oldCode');
-//   if(oldCodeStored){
-//     setOldCode(oldCodeStored);
-//   } 
-//   else{} 
-  const handleOldCodeChange = (event) => {
-    setOldCode(event.target.value);
-  };
-
-  const handleNewCodeChange = (event) => {
-    setNewCode(event.target.value);
-  };
+const ToggleComparison = ({ oldCode, newCode }) => {
+  const [showCode, setShowCode] = useState(false);
 
   return (
-    <Grid container spacing={4}>
+    <Box sx={{ height: "100%" }}>
       {/* Old Version */}
-      <Grid item xs={12} md={6}>
-        <Typography variant="h6" textAlign="center" sx={{ marginBottom: 2 }}>
-          Old Version
-        </Typography>
-        {/* Old Webpage */}
+      <Box
+        sx={{
+          // border: "1px solid green",
+          borderRadius: 2,
+          overflow: "hidden",
+          height: "50%",
+          display: "relative",
+          border: "1px solid black",
+        }}
+      >
         <Box
           sx={{
-            border: '1px solid #ccc',
-            borderRadius: 2,
-            overflow: 'hidden',
-            height: 300,
-            marginBottom: 2,
+            display: "absolute",
+            width: "max-content",
+            height: "max-content",
+            color: "black",
+            top: "0",
+            right: "0",
           }}
         >
+          Old Version
+          <Button onClick={() => setShowCode(!showCode)}>
+            {" "}
+            {showCode ? "Show code" : "Show page"}{" "}
+          </Button>
+        </Box>
+        {showCode ? (
+          <TextareaAutosize
+            minRows={6}
+            value={oldCode}
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontFamily: "monospace",
+            }}
+          />
+        ) : (
           <iframe
             srcDoc={oldCode}
             title="Old Webpage"
-            style={{ width: '100%', height: '100%', border: 'none' }}
-          />
-        </Box>
-        {/* View/Hide Code Button */}
-        <Box textAlign="center" sx={{ marginBottom: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setShowOldCode(!showOldCode)}
-          >
-            {showOldCode ? 'Hide Code' : 'View Code'}
-          </Button>
-        </Box>
-        {/* Old Code View and Editor */}
-        {showOldCode && (
-          <Box
-            sx={{
-              backgroundColor: '#f5f5f5',
-              padding: 2,
-              borderRadius: 2,
-              border: '1px solid #ccc',
-            }}
-          >
-            <TextareaAutosize
-              minRows={6}
-              value={oldCode}
-              onChange={handleOldCodeChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                fontFamily: 'monospace',
-              }}
-            />
-          </Box>
+            style={{ width: "100%", height: "100%", border: "1px solid black" }}
+          ></iframe>
         )}
-      </Grid>
-
-      {/* New Version */}
-      <Grid item xs={12} md={6}>
-        <Typography variant="h6" textAlign="center" sx={{ marginBottom: 2 }}>
-          New Version
-        </Typography>
-        {/* New Webpage */}
-        <Box
+      </Box>
+      {/* <Box
           sx={{
-            border: '1px solid #ccc',
+            backgroundColor: "#f5f5f5",
+            padding: 2,
             borderRadius: 2,
-            overflow: 'hidden',
-            height: 300,
-            marginBottom: 2,
+            border: "1px solid #ccc",
           }}
         >
-          <iframe
-            srcDoc={newCode}
-            title="New Webpage"
-            style={{ width: '100%', height: '100%', border: 'none' }}
+          <TextareaAutosize
+            minRows={6}
+            value={oldCode}
+            onChange={handleOldCodeChange}
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontFamily: "monospace",
+            }}
           />
         </Box>
-        {/* View/Hide Code Button */}
-        <Box textAlign="center" sx={{ marginBottom: 2 }}>
+      )} */}
+
+      {/* New Version */}
+      {/* New Webpage */}
+      <Box
+        sx={{
+          // border: "1px solid green",
+          borderRadius: 2,
+          overflow: "hidden",
+          height: "50%",
+        }}
+      >
+        <Box
+          component={"span"}
+          sx={{
+            display: "absolute",
+            width: "max-content",
+            height: "max-content",
+            color: "black",
+            top: "0",
+            right: "0",
+            border: "1px solid black",
+          }}
+        >
+          New Version
+        </Box>
+        {showCode ? (
+          <TextareaAutosize
+            minRows={6}
+            value={newCode}
+            style={{
+              width: "100%",
+              padding: "8px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontFamily: "monospace",
+            }}
+          />
+        ) : (
+          <iframe
+            srcDoc={newCode}
+            title="Old Webpage"
+            style={{ width: "100%", height: "100%", border: "1px solid black" }}
+          ></iframe>
+        )}
+      </Box>
+      {/* View/Hide Code Button */}
+      {/* <Box textAlign="center" sx={{ marginBottom: 2 }}>
           <Button
             variant="contained"
             color="primary"
             onClick={() => setShowNewCode(!showNewCode)}
           >
-            {showNewCode ? 'Hide Code' : 'View Code'}
+            {showNewCode ? "Hide Code" : "View Code"}
           </Button>
-        </Box>
-        {/* New Code View and Editor */}
-        {showNewCode && (
+        </Box> */}
+      {/* New Code View and Editor */}
+      {/* {showNewCode && (
           <Box
             sx={{
-              backgroundColor: '#f5f5f5',
+              backgroundColor: "#f5f5f5",
               padding: 2,
               borderRadius: 2,
-              border: '1px solid #ccc',
+              border: "1px solid #ccc",
             }}
           >
             <TextareaAutosize
@@ -125,17 +152,16 @@ const ToggleComparison = ({ oldCode: initialOldCode, newCode: initialNewCode }) 
               value={newCode}
               onChange={handleNewCodeChange}
               style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                fontFamily: 'monospace',
+                width: "100%",
+                padding: "8px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+                fontFamily: "monospace",
               }}
             />
           </Box>
-        )}
-      </Grid>
-    </Grid>
+        )} */}
+    </Box>
   );
 };
 
