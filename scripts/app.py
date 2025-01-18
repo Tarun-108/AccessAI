@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 
+from improve_contrast import improve_text_contrast
+
 app = Flask(__name__)
 
 def improve_img_tag(img_tag, changes):
@@ -48,8 +50,7 @@ def process_dom(content, is_url):
             improve_img_tag(img_tag, changes)
 
         # Improve p tags
-        for p_tag in soup.find_all("p"):
-            improve_para_element(p_tag, changes)
+        improve_text_contrast(page, changes)
 
         browser.close()
         return (str(soup), changes)
