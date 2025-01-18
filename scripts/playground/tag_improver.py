@@ -12,7 +12,11 @@ model = BlipForConditionalGeneration.from_pretrained(
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def generate_caption(img_url, prompts=None):
-    raw_image = Image.open(requests.get(img_url, stream=True).raw).convert("RGB")
+    try:
+        img = requests.get(img_url, stream=True)
+    except:
+        return None
+    raw_image = Image.open(img.raw).convert("RGB")
     if prompts is None:
         prompts = ["a photograph of", "an image of", ""]
     captions = []

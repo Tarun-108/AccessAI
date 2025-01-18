@@ -1,3 +1,8 @@
+import numpy as np
+from io import BytesIO
+from PIL import Image
+import base64
+
 def get_selector(tag):
     """Generate a CSS selector for a given element."""
     if not tag:
@@ -28,3 +33,9 @@ def get_selector(tag):
             selector += f":nth-child({index})"
 
     return selector
+
+def decode_image(base64_string):
+    """Decode a base64 image string."""
+    img_data = base64.b64decode(base64_string)
+    img = Image.open(BytesIO(img_data))
+    return np.array(img)
