@@ -1,16 +1,43 @@
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
+from playground.tag_improver import generate_caption, generate_label
 
 app = Flask(__name__)
+
+def get_selector(tag):
+    if tag.get("id"):
+        return f"#{tag['id']}"
+    elif tag.get("class"):
+        classes = ".".join(tag["class"])
+        return f"#{tag.name}.{classes}"
+    return tag.name
 
 def improve_img_tag(img_tag, changes):
     """Add alt text to img tags if not present."""
     if not img_tag.get("alt"):
-        img_tag["alt"] = "Default alt text"
-        selector = f"img[src='{img_tag.get('src')}']"
-        changes.append({"type": "add_alt_text", "selector": selector, "details": "Added default alt text."})
-    return img_tag
+        img_url = img_tag.get("src", None)
+        if img_url is not None:
+            captions, elapsed = generate_caption(img_url)
+            img_tag["alt"] = captions[0]
+            changes.append({
+                "type": "add_alt_text", 
+                "success": True,
+                "details": "change successful",
+                "selector": get_selector(img_tag),
+                "captions": captions,
+                "time_elapsed": elapsed
+            })
+        else:
+            img_tag["alt"] = "Image not found"
+            changes.append({
+                "type": "add_alt_text", 
+                "success": False,
+                "details": "image not found",
+                "selector": get_selector(img_tag),
+                "captions": captions,
+                "time_elapsed": elapsed
+            })
 
 def improve_para_element(p_tag, changes):
     """Check contrast of the text and add required styles."""
@@ -25,6 +52,44 @@ def improve_para_element(p_tag, changes):
             "details": "Added default color and background-color for contrast."
         })
     return p_tag
+
+def improve_form_tag(form, changes):
+    form, changed = generate_label(form)
+    if changed:
+        if form["label"] is not None:
+            changes.append({
+                "type": "add_label", 
+                "success": True,
+                "details": "form label changed",
+                "selector": get_selector(form),
+                "label": form["label"],
+            })
+        else:
+            changes.append({
+                "type": "add_label", 
+                "success": False,
+                "details": "form label not found",
+                "selector": get_selector(form),
+                "label": form["label"]
+            })
+    for element in form.elements:
+        if changed:
+            if element["label"] is not None:
+                changes.append({
+                    "type": "add_label", 
+                    "success": True,
+                    "details": "form label changed",
+                    "selector": get_selector(element),
+                    "label": element["label"],
+                })
+            else:
+                changes.append({
+                    "type": "add_label", 
+                    "success": False,
+                    "details": "form label not found",
+                    "selector": get_selector(element),
+                    "label": element["label"]
+                })
 
 def process_dom(content, is_url):
     """Traverse the DOM and modify img and p elements."""
@@ -42,14 +107,19 @@ def process_dom(content, is_url):
         # Get the page content
         html_content = page.content()
         soup = BeautifulSoup(html_content, "html.parser")
+        try:
+            # Improve img tags
+            for img_tag in soup.find_all("img"):
+                improve_img_tag(img_tag, changes)
+            
+            for form in soup.find_all("form"):
+                improve_form_tag(form, changes)
 
-        # Improve img tags
-        for img_tag in soup.find_all("img"):
-            improve_img_tag(img_tag, changes)
-
-        # Improve p tags
-        for p_tag in soup.find_all("p"):
-            improve_para_element(p_tag, changes)
+            # Improve p tags
+            for p_tag in soup.find_all("p"):
+                improve_para_element(p_tag, changes)
+        except Exception as e:
+            print("error in process_dom: ", e)
 
         browser.close()
         return (str(soup), changes)
@@ -70,6 +140,7 @@ def analyze():
         updated_dom, changes = process_dom(content, is_url)
         return jsonify({"updated_dom": updated_dom, "changes": changes})
     except Exception as e:
+        print("error: ", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
