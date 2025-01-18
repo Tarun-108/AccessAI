@@ -175,7 +175,27 @@ def improve_text_contrast(page, changes):
     return elements_with_text
 
 if __name__ == "__main__":
-    html_content = '<div style="color: aliceblue;">With bad contrast</div>'
+    html_content = """
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<html>
+    <div style="color: aliceblue;">With bad contrast</div>
+    <img src="https://picsum.photos/200/300"> 
+    <form>
+        <label for="name"></label>
+        <input name="name" id="name">  
+        <label for="email"></label>
+        <input type="email" id="email">
+        <input type="text" id="cat">
+    </form>
+</body>
+</html>
+    """
     # res = improve_text_contrast(html_content)
     # print("changes: ", res)
     with sync_playwright() as p:
@@ -184,7 +204,8 @@ if __name__ == "__main__":
         page = context.new_page()
 
         page.set_content(html_content)
-        elements = improve_text_contrast(page)
+        changes = []
+        elements = improve_text_contrast(page, changes)
         print("changes length: ", len(elements))
         print("changes: ", elements)
         print("updated html: ", page.content())

@@ -7,10 +7,11 @@ const GradientBackground = ({ children }) => {
       sx={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#f5f5f5', // A light grey background for a clean, modern look
-        padding: 2,
+        padding: 1,
       }}
     >
       {children}
