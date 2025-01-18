@@ -2,16 +2,11 @@ from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from playground.tag_improver import generate_caption, generate_aria_label, check_for_label
+from playground.utils import get_selector
+from playground.keyboard_navigation_checker import check_dynamic_tab_order
 
 app = Flask(__name__)
 
-def get_selector(tag):
-    if tag.get("id"):
-        return f"#{tag['id']}"
-    elif tag.get("class"):
-        classes = ".".join(tag["class"])
-        return f"#{tag.name}.{classes}"
-    return tag.name
 
 def improve_img_tag(img_tag, changes):
     """Add alt text to img tags if not present."""
@@ -32,9 +27,9 @@ def improve_img_tag(img_tag, changes):
             changes.append({
                 "type": "add_alt_text", 
                 "success": False,
-                "details": "image not found",
+                "details": "image url is none",
                 "selector": get_selector(img_tag),
-                "suggestions": captions,
+                "suggestions": "Image change failed",
             })
 
 def improve_para_element(p_tag, changes):
@@ -110,7 +105,6 @@ def process_dom(content, is_url):
         html_content = page.content()
         soup = BeautifulSoup(html_content, "html.parser")
         try:
-            # Improve img tags
             for img_tag in soup.find_all("img"):
                 improve_img_tag(img_tag, changes)
             
@@ -120,11 +114,13 @@ def process_dom(content, is_url):
             # Improve p tags
             for p_tag in soup.find_all("p"):
                 improve_para_element(p_tag, changes)
+            
+            focusable, discrepancies = check_dynamic_tab_order(page)
         except Exception as e:
             print("error in process_dom: ", e)
 
         browser.close()
-        return (str(soup), changes)
+        return str(soup), changes, focusable, discrepancies
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -139,11 +135,18 @@ def analyze():
         return jsonify({"error": "Content is required"}), 400
 
     try:
-        updated_dom, changes = process_dom(content, is_url)
-        return jsonify({"updated_dom": updated_dom, "changes": changes})
+        updated_dom, changes, focusable, discrepancies = process_dom(content, is_url)
     except Exception as e:
         print("error: ", e)
         return jsonify({"error": str(e)}), 500
+    return jsonify(
+            {
+                "updated_dom": updated_dom, 
+                "changes": changes,
+                "focusable_elements": focusable,
+                "discrepancies": discrepancies
+            }
+        )
 
 if __name__ == "__main__":
     app.run(debug=True)
