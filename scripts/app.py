@@ -118,29 +118,32 @@ def process_dom(content, is_url):
             page.set_content(content)
 
         # Get the page content
-        html_content = page.content()
-        soup = BeautifulSoup(html_content, "html.parser")
+        # html_content = page.content()
+        # soup = BeautifulSoup(html_content, "html.parser")
         
         try:
+            # Improve contrast
+            improve_text_contrast(page, changes)
+            focusable, discrepancies = check_dynamic_tab_order(page)
+
+            soup = BeautifulSoup(page.content(), "html.parser")
+
             for img_tag in soup.find_all("img"):
                 improve_img_tag(img_tag, changes)
             
             for form in soup.find_all("form"):
                 improve_form_tag(form, changes)
 
-            # Improve contrast
-            improve_text_contrast(page, changes)
-
             # Improve p tags
             for p_tag in soup.find_all("p"):
                 improve_para_element(p_tag, changes)
             
-            focusable, discrepancies = check_dynamic_tab_order(page)
+            browser.close()
+            return str(soup), changes, focusable, discrepancies
         except Exception as e:
             print("error in process_dom: ", e)
+            raise e
 
-        browser.close()
-        return str(soup), changes, focusable, discrepancies
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
