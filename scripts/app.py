@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
-from playground.tag_improver import generate_caption, generate_label
+from playground.tag_improver import generate_caption, generate_aria_label, check_for_label
 
 app = Flask(__name__)
 
@@ -18,15 +18,14 @@ def improve_img_tag(img_tag, changes):
     if not img_tag.get("alt"):
         img_url = img_tag.get("src", None)
         if img_url is not None:
-            captions, elapsed = generate_caption(img_url)
+            captions = generate_caption(img_url)
             img_tag["alt"] = captions[0]
             changes.append({
                 "type": "add_alt_text", 
                 "success": True,
-                "details": "change successful",
+                "details": "image alt text added",
                 "selector": get_selector(img_tag),
-                "captions": captions,
-                "time_elapsed": elapsed
+                "suggestions": captions,
             })
         else:
             img_tag["alt"] = "Image not found"
@@ -35,8 +34,7 @@ def improve_img_tag(img_tag, changes):
                 "success": False,
                 "details": "image not found",
                 "selector": get_selector(img_tag),
-                "captions": captions,
-                "time_elapsed": elapsed
+                "suggestions": captions,
             })
 
 def improve_para_element(p_tag, changes):
@@ -54,42 +52,46 @@ def improve_para_element(p_tag, changes):
     return p_tag
 
 def improve_form_tag(form, changes):
-    form, changed = generate_label(form)
+    form, changed = generate_aria_label(form)
     if changed:
-        if form["label"] is not None:
+        if form["aria-label"] is not None:
             changes.append({
-                "type": "add_label", 
+                "type": "add_aria_label", 
                 "success": True,
-                "details": "form label changed",
+                "details": "form aria-label changed",
                 "selector": get_selector(form),
-                "label": form["label"],
+                "suggestions": form["aria-label"],
             })
         else:
             changes.append({
-                "type": "add_label", 
+                "type": "add_aria_label", 
                 "success": False,
-                "details": "form label not found",
+                "details": "form aria-label not found",
                 "selector": get_selector(form),
-                "label": form["label"]
+                "suggestions": form["aria-label"]
             })
-    for element in form.elements:
+    child_elements = form.find_all(["input", "select", "textarea"])
+    for element in child_elements:
+        element, changed = generate_aria_label(element)
+        element_selector = get_selector(element)
+        label_found = check_for_label(form, element)
+        if not label_found:
+            changes.append({
+                "type": "add_label",
+                "success": False,
+                "details": f"element {element_selector} label not found",
+                "selector": element_selector,
+                "suggestions": f"add label for {element_selector}"
+            })
         if changed:
-            if element["label"] is not None:
-                changes.append({
-                    "type": "add_label", 
-                    "success": True,
-                    "details": "form label changed",
-                    "selector": get_selector(element),
-                    "label": element["label"],
-                })
-            else:
-                changes.append({
-                    "type": "add_label", 
-                    "success": False,
-                    "details": "form label not found",
-                    "selector": get_selector(element),
-                    "label": element["label"]
-                })
+            changes.append({
+                "type": "add_aria_label", 
+                "success": True,
+                "details": f"element {element_selector} aria-label changed",
+                "selector": element_selector,
+                "suggestions": element["aria-label"],
+            })
+        
 
 def process_dom(content, is_url):
     """Traverse the DOM and modify img and p elements."""
