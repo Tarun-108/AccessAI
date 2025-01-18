@@ -10,8 +10,12 @@ def get_accessibility_score(content, is_url):
     :return: A dictionary containing the accessibility index and issue details.
     """
     # Load the axe-core script from CDN
+    print("Input for accessibility score: ",content, is_url)
+
     axe_script_url = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.7.2/axe.min.js"
     axe_script = requests.get(axe_script_url).text
+
+    print("Axe script loaded")
 
     with sync_playwright() as p:
         # Launch the browser
@@ -20,6 +24,8 @@ def get_accessibility_score(content, is_url):
         page = context.new_page()
 
         # Navigate to the target URL
+        print("inside playwright", is_url)
+
         if is_url:
             page.goto(content)
         else:
@@ -33,12 +39,14 @@ def get_accessibility_score(content, is_url):
 
         # Extract violations and calculate accessibility index
         violations = results["violations"]
+        
         total_issues = sum(len(v["nodes"]) for v in violations)
-        total_tests = len(results["passes"]) + len(violations)
+
+        total_tests = sum(len(p["nodes"]) for p in results["passes"]) + sum(len(v["nodes"]) for v in violations)
 
         # Calculate accessibility index (higher is better, range 0 to 100)
-        if total_tests > 0:
-            accessibility_index = (1 - (total_issues / total_tests)) * 100
+        if total_tests > 0 and total_tests>=total_issues:
+            accessibility_index = max(0, (1 - (total_issues / total_tests)) * 100)
         else:
             accessibility_index = 100  # Perfect score if no tests failed
 
@@ -46,7 +54,6 @@ def get_accessibility_score(content, is_url):
         browser.close()
 
         return {
-            "url": url,
             "accessibility_index": round(accessibility_index, 2),
             "total_issues": total_issues,
             "violations": violations

@@ -12,10 +12,12 @@ model = BlipForConditionalGeneration.from_pretrained(
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def generate_caption(img_url, prompts=None):
+    print(f"kya yaha aya")
     raw_image = Image.open(requests.get(img_url, stream=True).raw).convert("RGB")
     if prompts is None:
         prompts = ["a photograph of", "an image of", ""]
     captions = []
+    print(f"yahaa aya")
     start = time()
     for text in prompts:
         inputs = processor(raw_image, text, return_tensors="pt").to(device, torch.float16)

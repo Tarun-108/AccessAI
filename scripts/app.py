@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
+
 from playground.tag_improver import generate_caption, generate_label
 
 from improve_contrast import improve_text_contrast
@@ -20,6 +21,7 @@ def get_selector(tag):
 def improve_img_tag(img_tag, changes):
     """Add alt text to img tags if not present."""
     if not img_tag.get("alt"):
+        print(f"checking for img tag")
         img_url = img_tag.get("src", None)
         if img_url is not None:
             captions, elapsed = generate_caption(img_url)
@@ -39,7 +41,7 @@ def improve_img_tag(img_tag, changes):
                 "success": False,
                 "details": "image not found",
                 "selector": get_selector(img_tag),
-                "captions": captions,
+                "captions": "image is not present",
                 "time_elapsed": elapsed
             })
 
@@ -111,15 +113,33 @@ def process_dom(content, is_url):
         # Get the page content
         html_content = page.content()
         soup = BeautifulSoup(html_content, "html.parser")
+
+        print("soup created")
+
         # Improve img tags
-        for img_tag in soup.find_all("img"):
-            improve_img_tag(img_tag, changes)
-            
-        for form in soup.find_all("form"):
-            improve_form_tag(form, changes)
+        try:
+            for img_tag in soup.find_all("img"):
+                improve_img_tag(img_tag, changes)
+        except Exception as e:
+            print("error in img tag", e)
+        finally:
+            print("img tag done calls done")
+
+        try:             
+            for form in soup.find_all("form"):
+                improve_form_tag(form, changes)
+        except Exception as e:  
+            print("error in form tag", e)
+        finally:
+            print("form tag done calls done")
 
         # Improve contrast
-        improve_text_contrast(page, changes)
+        try:
+            improve_text_contrast(page, changes)
+        except Exception as e:
+            print("error in contrast", e)
+        finally:
+            print("contrast done calls done")
 
 
         browser.close()
@@ -140,12 +160,23 @@ def analyze():
         return jsonify({"error": "Content is required"}), 400
 
     try:
-        # initial_score = get_accessibility_score(content, is_url)
-        updated_dom, changes = process_dom(content, is_url)
-        # updated_score = get_accessibility_score(updated_dom, False)
-        # return jsonify({"updated_dom": updated_dom, "changes": changes, "initial_score": initial_score, "updated_score": updated_score})
-        return jsonify({"updated_dom": updated_dom, "changes": changes})
+        try:
+            initial_score = get_accessibility_score(content, is_url)
+            # initial_score = {"test": "test"}
+        except Exception as e:
+            print("error in initial score", e)
+            initial_score = {"error": str(e)}
+        finally:
+            updated_dom, changes = process_dom(content, is_url)
+            
+        try:
+            updated_score = get_accessibility_score(updated_dom, False)
+        except Exception as e:
+            print("error in initial score", e)
+            updated_score = {"error": str(e)}
 
+        return jsonify({"updated_dom": updated_dom, "changes": changes, "initial_score": initial_score, "updated_score": updated_score})
+       
     except Exception as e:
         print("error: ", e)
         return jsonify({"error": str(e)}), 500
