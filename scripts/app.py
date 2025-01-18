@@ -3,6 +3,7 @@ from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from playground.tag_improver import generate_caption, generate_label
 
+from heading_improver.py import heading_improver
 from improve_contrast import improve_text_contrast
 
 app = Flask(__name__)
