@@ -1,26 +1,139 @@
-import React from 'react';
-import { Paper } from '@mui/material';
+import React, { useState } from 'react';
+import { Paper, TextField, Button, Box, Typography, Grid } from '@mui/material';
 import GradientBackground from '../components/GradientBackground';
-import Header from '../components/Header';
+// import Header from '../components/Header';
 import UrlInputForm from '../components/UrlInputForm';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
+  const [htmlCode, setHtmlCode] = useState('');
+  const navigate = useNavigate();
+
+  const handleCodeChange = (e) => {
+    setHtmlCode(e.target.value);
+  };
+
+  const handleAnalyzeHtml = () => {
+    if (htmlCode.trim()) {
+      localStorage.setItem('oldCode', htmlCode);
+      navigate('/report');
+    } else {
+      alert('Please paste the HTML code first!');
+    }
+  };
+
+  const handleAnalyzeUrl = () => {
+    alert('URL analysis not implemented yet.'); // Placeholder action for the URL button
+  };
+
   return (
     <GradientBackground>
       <Paper
         elevation={3}
         sx={{
           padding: 4,
-          maxWidth: 600,
+          maxWidth: 900,
           width: '100%',
           textAlign: 'center',
           backgroundColor: '#ffffff',
           borderRadius: 2,
           boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+          margin: '0 auto',
         }}
       >
-        <Header />
-        <UrlInputForm />
+        {/* Heading */}
+        <Typography
+          variant="h4"
+          component="h1"
+          gutterBottom
+          sx={{
+            fontWeight: 'bold',
+            color: '#333',
+            marginBottom: 2,
+          }}
+        >
+          AccessAI
+        </Typography>
+
+        {/* Subtext */}
+        <Typography
+          variant="body1"
+          gutterBottom
+          sx={{ color: '#555', marginBottom: 3 }}
+        >
+          Analyze your website for accessibility issues and improve its inclusivity!
+        </Typography>
+
+        {/* Two Columns with OR in the middle */}
+        <Grid container spacing={4} alignItems="center">
+          {/* Column 1: URL Input */}
+          <Grid item xs={12} md={5}>
+            <UrlInputForm />
+            {/* <Button
+              variant="contained"
+              color="primary"
+              onClick={handleAnalyzeUrl}
+              sx={{
+                marginTop: 2,
+                width: '100%',
+                padding: '10px',
+                fontSize: '16px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              Analyze URL
+            </Button> */}
+          </Grid>
+
+          {/* OR Divider */}
+          <Grid item xs={12} md={2}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#555',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                marginTop: '16px',
+              }}
+            >
+              OR
+            </Typography>
+          </Grid>
+
+          {/* Column 2: HTML Code Input */}
+          <Grid item xs={12} md={5}>
+            <TextField
+              label="Paste HTML Code"
+              multiline
+              rows={6}
+              value={htmlCode}
+              onChange={handleCodeChange}
+              fullWidth
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+              }}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleAnalyzeHtml}
+              sx={{
+                marginTop: 2,
+                width: '100%',
+                padding: '10px',
+                fontSize: '16px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              Analyze HTML
+            </Button>
+          </Grid>
+        </Grid>
       </Paper>
     </GradientBackground>
   );

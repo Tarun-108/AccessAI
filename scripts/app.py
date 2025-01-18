@@ -5,6 +5,8 @@ from playground.tag_improver import generate_caption, generate_aria_label, check
 from playground.utils import get_selector
 from playground.keyboard_navigation_checker import check_dynamic_tab_order
 
+from improve_contrast import improve_text_contrast
+
 app = Flask(__name__)
 
 
@@ -104,12 +106,16 @@ def process_dom(content, is_url):
         # Get the page content
         html_content = page.content()
         soup = BeautifulSoup(html_content, "html.parser")
+        
         try:
             for img_tag in soup.find_all("img"):
                 improve_img_tag(img_tag, changes)
             
             for form in soup.find_all("form"):
                 improve_form_tag(form, changes)
+
+            # Improve contrast
+            improve_text_contrast(page, changes)
 
             # Improve p tags
             for p_tag in soup.find_all("p"):
