@@ -44,17 +44,6 @@ wheels = [
 ]
 
 [[package]]
-name = "hackathon"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "playwright" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "playwright", specifier = ">=1.49.1" }]
-
-[[package]]
 name = "playwright"
 version = "1.49.1"
 source = { registry = "https://pypi.org/simple" }
@@ -83,6 +72,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/d2/a7/8faaa62a488a2a1e0
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/0d/95993c08c721ec68892547f2117e8f9dfbcef2ca71e098533541b4a54d5f/pyee-12.0.0-py3-none-any.whl", hash = "sha256:7b14b74320600049ccc7d0e0b1becd3b4bd0a03c745758225e31a59f4095c990", size = 14831 },
 ]
+
+[[package]]
+name = "scripts"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "playwright" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "playwright", specifier = ">=1.49.1" }]
 
 [[package]]
 name = "typing-extensions"
