@@ -47,7 +47,7 @@ const HomePage = () => {
         }}
       >
         Access
-        <Box>AI</Box>
+        <Box id="aibox">AI</Box>
       </Typography>
       <Typography
         variant="body1"
@@ -68,6 +68,7 @@ const HomePage = () => {
           borderRadius: 2,
           boxShadow: "0 4px 10px rgba(0, 0, 0, 0.2)",
           margin: "0 auto",
+          zIndex: "999",
         }}
       >
         {/* Two Columns with OR in the middle */}

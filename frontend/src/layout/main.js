@@ -1,10 +1,7 @@
-import { Outlet } from "react-router-dom";
-
 const MainLayout = ({ children }) => {
   return (
     <div>
-      {/* <Header /> */}
-      <Outlet />
+      <main id="main-content">{children}</main>
     </div>
   );
 };

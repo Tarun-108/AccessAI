@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Box, Container, Typography } from "@mui/material";
 import GradientBackground from "../components/GradientBackground";
 import ScoreCard from "../components/ScoreCard";
+import CircularProgress from "@mui/material/CircularProgress";
 import ToggleComparison from "../components/ToggleComparison";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LOCAL_STORAGE_KEY } from "./HomePage";
@@ -12,10 +13,8 @@ const ReportPage = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [oldCode, setOldCode] = useState('<h1 ">Old Page</h1>');
-  const [newCode, setNewCode] = useState(
-    '<h1 style="color: green;">New Page</h1>'
-  );
+  const [oldCode, setOldCode] = useState('');
+  const [newCode, setNewCode] = useState('');
   const { state } = useLocation();
 
   useEffect(() => {
@@ -56,11 +55,17 @@ const ReportPage = () => {
       console.log("server data: ", data);
       setSuggestions(data);
       setNewCode(data.updated_dom);
-      
+
       setLoading(false);
     };
     analyzeHTML();
   }, []);
+
+  if (loading) {
+    <Box sx={{ display: "flex" }}>
+      <CircularProgress />
+    </Box>;
+  }
 
   return (
     // <GradientBackground>
@@ -73,9 +78,9 @@ const ReportPage = () => {
     >
       {/* <ScoreCard /> */}
       <Container sx={{ width: "50%" }}>
-      {/* IMPROVEMENTS SECTION */}
-      <Typography variant="h3">Improvements: </Typography>
-      {/* {suggestions.map((suggestion) => (
+        {/* IMPROVEMENTS SECTION */}
+        <Typography variant="h3">Improvements: </Typography>
+        {/* {suggestions.map((suggestion) => (
         <Box>
           <h2>{suggestion.title}</h2>
           <ul>
@@ -86,13 +91,8 @@ const ReportPage = () => {
         </Box>
       ))} */}
       </Container>
-      <Box
-        sx={{ width: "50%", border: "1px solid red", height: "100vh" }}
-      >
-        <ToggleComparison
-          oldCode={oldCode}
-          newCode={newCode}
-        />
+      <Box sx={{ width: "50%", height: "100vh" }}>
+        <ToggleComparison oldCode={oldCode} newCode={newCode} />
       </Box>
     </Box>
     // </GradientBackground>
