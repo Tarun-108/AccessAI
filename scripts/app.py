@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 
+from playground.accessibility_score import get_accessibility_score
+
 app = Flask(__name__)
 
 def improve_img_tag(img_tag, changes):
@@ -53,6 +55,8 @@ def process_dom(content, is_url):
 
         browser.close()
         return (str(soup), changes)
+    
+
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -67,8 +71,12 @@ def analyze():
         return jsonify({"error": "Content is required"}), 400
 
     try:
+        # initial_score = get_accessibility_score(content, is_url)
         updated_dom, changes = process_dom(content, is_url)
+        # updated_score = get_accessibility_score(updated_dom, False)
+        # return jsonify({"updated_dom": updated_dom, "changes": changes, "initial_score": initial_score, "updated_score": updated_score})
         return jsonify({"updated_dom": updated_dom, "changes": changes})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
