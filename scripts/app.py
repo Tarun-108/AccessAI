@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from flask_cors import CORS
 from playground.tag_improver import generate_caption, generate_aria_label, check_for_label
-from playground.utils import get_selector, decode_image
+from playground.utils import get_selector, take_screenshot, compare_screenshots
 from playground.keyboard_navigation_checker import check_dynamic_tab_order
 from playground.heading_improver import heading_improver
 import os
@@ -126,29 +126,52 @@ def process_dom(content, is_url):
         # soup = BeautifulSoup(html_content, "html.parser")
         
         try:
-            # Improve contrast
             improve_text_contrast(page, changes)
+        except Exception as e:
+            print("error in improve_text_contrast: ", e)
+
+        try:
             focusable, discrepancies = check_dynamic_tab_order(page)
+        except Exception as e:
+            focusable = []
+            discrepancies = []
+            print("error in check_dynamic_tab_order: ", e)
 
-            soup = BeautifulSoup(page.content(), "html.parser")
+        soup = BeautifulSoup(page.content(), "html.parser")
 
+        try:
             for img_tag in soup.find_all("img"):
                 improve_img_tag(img_tag, changes)
+        except  Exception as e:
+            print("error in improve_img_tag: ", e)
         
+        try:
             for form in soup.find_all("form"):
                 improve_form_tag(form, changes)
+        except Exception as e:
+            print("error in improve_form_tag: ", e)
 
-            # Improve p tags
+
+        # Improve p tags
+        try:
             for p_tag in soup.find_all("p"):
                 improve_para_element(p_tag, changes)
-            
-            browser.close()
-            return str(soup), changes, focusable, discrepancies
         except Exception as e:
-            print("error in process_dom: ", e)
-            raise e
-        finally:
-            print("form tag done calls done")
+            print("error in improve_para_element: ", e)
+
+
+        try:
+            heading_warnings = heading_warnings(soup)
+        except Exception as e:
+            heading_warnings = []
+            print("error in heading_warnings: ", e)
+        
+        browser.close()
+        new_html = str(soup)
+    original = take_screenshot(html_content)
+    now = take_screenshot(new_html)
+    diff, score = compare_screenshots(original, now)
+    return new_html, changes, focusable, discrepancies, diff, score, heading_warnings
 
 
 @app.route("/analyze", methods=["POST"])
@@ -163,6 +186,7 @@ def analyze():
     if not content:
         return jsonify({"error": "Content is required"}), 400
 
+
     try:
         try:
             initial_score = get_accessibility_score(content, is_url)
@@ -171,7 +195,7 @@ def analyze():
             print("error in initial score", e)
             initial_score = {"error": str(e)}
         
-        updated_dom, changes, focusable, discrepancies, heading_warnings = process_dom(content, is_url)
+        updated_dom, changes, focusable, discrepancies, diff, score, heading_warnings = process_dom(content, is_url)
             
         try:
             updated_score = get_accessibility_score(updated_dom, False)
@@ -188,87 +212,25 @@ def analyze():
             {
                 "updated_dom": updated_dom, 
                 "changes": changes,
+                "navigation": {
+                    "focusable_elements": focusable,
+                    "discrepancies": discrepancies
+                },
+                "changed_in": {
+                    "changes": diff, 
+                    "score": score
+                },
                 "tab":{
                     "focusable_elements": focusable,
                     "discrepancies": discrepancies
                 },
                 "heading_warnings": heading_warnings,
                 "initial_score": initial_score, 
-                "updated_score": updated_score
+                "updated_score": updated_score,
             }
         )
     
-@app.route("/screen-capture", methods=["POST"])
-def take_screenshot():
-    """Capture a screenshot of the provided HTML content."""
-    data = request.json
-    html_content = data.get("content")
-    print(f"/screen-capture {html_content}")
 
-    if not html_content:
-        return jsonify({"error": "HTML content is required"}), 400
-
-    try:
-        temp_file = "temp.html"
-        with open(temp_file, "w", encoding="utf-8") as file:
-            file.write(html_content)
-
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.set_content(html_content)  
-            screenshot_path = "screenshot.png"
-            page.screenshot(path=screenshot_path)
-            browser.close()
-        with open(screenshot_path, "rb") as img_file:
-            screenshot_base64 = base64.b64encode(img_file.read()).decode("utf-8")
-
-        os.remove(temp_file)
-        os.remove(screenshot_path)
-
-        return jsonify({"screenshot": screenshot_base64}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-
-@app.route("/compare", methods=["POST"])
-def compare_screenshots():
-    data = request.json
-    new_img = data.get("new_img", None)
-    old_img = data.get("old_img", None)
-    
-    if new_img is None or old_img is None:
-        return jsonify({"error": "both images required"})
-    
-    # Decode the base64 images
-    try:
-        new_img_array = decode_image(new_img)
-        old_img_array = decode_image(old_img)
-    except Exception as e:
-        return jsonify({"error": f"Image decoding failed: {str(e)}"}), 400
-
-    # Ensure the images are the same size
-    if new_img_array.shape != old_img_array.shape:
-        return jsonify({"error": "Images must have the same dimensions for comparison."}), 400
-
-    # Convert the images to grayscale for SSIM comparison
-    new_img_gray = cv2.cvtColor(new_img_array, cv2.COLOR_BGR2GRAY)
-    old_img_gray = cv2.cvtColor(old_img_array, cv2.COLOR_BGR2GRAY)
-
-    # Calculate SSIM (Structural Similarity Index)
-    score, diff = ssim(new_img_gray, old_img_gray, full=True)
-    diff = (diff * 255).astype("uint8")  # Scale the difference image to 255
-
-    # You can return the SSIM score and the diff image
-    _, buffer = cv2.imencode(".png", diff)
-    diff_img_base64 = base64.b64encode(buffer).decode("utf-8")
-
-    return jsonify({
-        "ssim_score": score,
-        "diff_image": diff_img_base64
-    })
     
 
 if __name__ == "__main__":
