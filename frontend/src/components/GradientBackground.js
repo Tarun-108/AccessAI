@@ -9,7 +9,7 @@ const GradientBackground = ({ children }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)',
+        backgroundColor: '#f5f5f5', // A light grey background for a clean, modern look
         padding: 2,
       }}
     >

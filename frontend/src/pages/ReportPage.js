@@ -1,27 +1,48 @@
-import React from 'react';
-import { Box, Container } from '@mui/material';
-import GradientBackground from '../components/GradientBackground';
-import AccessibilityScore from '../components/AccessibilityScore';
-import ToggleComparison from '../components/ToggleComparison';
+import React, { useEffect, useState } from 'react';
+import { Container, Button, Typography, Box } from '@mui/material';
+import { useNavigate } from 'react-router-dom'; // For back navigation
+import ScoreCard from '../components/ScoreCard';
+import Comparison from '../components/Comparison';
+import Recommendations from '../components/Recommendations';
 
 const ReportPage = () => {
-  const oldCode = `<div><h1>Old Webpage</h1></div>`;
-  const newCode = `<div><h1>New Webpage</h1><p>Improved Content</p></div>`;
-  const oldPage = '<h1 style="color: red;">Old Page</h1>';
-  const newPage = '<h1 style="color: green;">New Page</h1>';
+  const navigate = useNavigate();
+  const [recommendations, setRecommendations] = useState([]);
+
+  useEffect(() => {
+    // Fetch recommendations from backend
+    const fetchRecommendations = async () => {
+      const response = await fetch('/api/recommendations'); // Replace with your API endpoint
+      const data = await response.json();
+      setRecommendations(data);
+    };
+
+    fetchRecommendations();
+  }, []);
 
   return (
-    <GradientBackground>
-      <Container maxWidth="lg">
-        <AccessibilityScore score={85} />
-        <ToggleComparison
-          oldCode={oldCode}
-          newCode={newCode}
-          oldPage={oldPage}
-          newPage={newPage}
-        />
-      </Container>
-    </GradientBackground>
+    <Container>
+      <Typography variant="h4" gutterBottom>
+        Accessibility Analysis Report
+      </Typography>
+
+      <ScoreCard score={75} />
+
+      <Comparison oldCode="<html>...</html>" newCode="<html>...</html>" />
+
+      {/* Include Recommendations */}
+      {recommendations.length > 0 ? (
+        <Recommendations recommendations={recommendations} />
+      ) : (
+        <Typography>Loading recommendations...</Typography>
+      )}
+
+      <Box sx={{ textAlign: 'center', marginTop: 4 }}>
+        <Button variant="outlined" onClick={() => navigate('/')}>
+          Back
+        </Button>
+      </Box>
+    </Container>
   );
 };
 
