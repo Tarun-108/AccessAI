@@ -1,48 +1,62 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Button, Typography, Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom'; // For back navigation
+import { Box, Container } from '@mui/material';
+import GradientBackground from '../components/GradientBackground';
 import ScoreCard from '../components/ScoreCard';
-import Comparison from '../components/Comparison';
-import Recommendations from '../components/Recommendations';
+import ToggleComparison from '../components/ToggleComparison';
 
 const ReportPage = () => {
-  const navigate = useNavigate();
-  const [recommendations, setRecommendations] = useState([]);
+  const [oldCode, setOldCode] = useState('<h1 ">Old Page</h1>');
+  const [newCode, setNewCode] = useState('<h1 style="color: green;">New Page</h1>');
+  const oldPage = '<h1 style="color: red;">Old Page</h1>';
+  const newPage = '<h1 style="color: green;">New Page</h1>';
 
   useEffect(() => {
-    // Fetch recommendations from backend
-    const fetchRecommendations = async () => {
-      const response = await fetch('/api/recommendations'); // Replace with your API endpoint
-      const data = await response.json();
-      setRecommendations(data);
+    const fetchCodes = async () => {
+      try {
+        // Retrieve oldCode from localStorage
+        const localOldCode = localStorage.getItem('oldCode');
+        if (localOldCode) {
+          setOldCode(localOldCode);
+        } else {
+          // If not in localStorage, fetch from the backend
+          const oldCodeResponse = await fetch('/api/oldCode'); // Replace with actual API endpoint
+          if (oldCodeResponse.ok) {
+            const oldCodeFromBackend = await oldCodeResponse.text();
+            setOldCode(oldCodeFromBackend);
+          } else {
+            console.error('Failed to fetch oldCode from the backend');
+          }
+        }
+
+        // Always fetch newCode from the backend
+        const newCodeResponse = await fetch('/api/newCode'); // Replace with actual API endpoint
+        if (newCodeResponse.ok) {
+          const newCodeFromBackend = await newCodeResponse.text();
+          setNewCode(newCodeFromBackend);
+        } else {
+          console.error('Failed to fetch newCode from the backend');
+        }
+      } catch (error) {
+        console.error('Error fetching codes:', error);
+      }
     };
 
-    fetchRecommendations();
+    fetchCodes();
+    console.log('oldCode'+oldCode );
   }, []);
 
   return (
-    <Container>
-      <Typography variant="h4" gutterBottom>
-        Accessibility Analysis Report
-      </Typography>
-
-      <ScoreCard score={75} />
-
-      <Comparison oldCode="<html>...</html>" newCode="<html>...</html>" />
-
-      {/* Include Recommendations */}
-      {recommendations.length > 0 ? (
-        <Recommendations recommendations={recommendations} />
-      ) : (
-        <Typography>Loading recommendations...</Typography>
-      )}
-
-      <Box sx={{ textAlign: 'center', marginTop: 4 }}>
-        <Button variant="outlined" onClick={() => navigate('/')}>
-          Back
-        </Button>
-      </Box>
+    // <GradientBackground>
+    <Container maxWidth="lg">
+      <ScoreCard />
+      <ToggleComparison
+        oldCode={oldCode}
+        newCode={newCode}
+        oldPage={oldPage}
+        newPage={newPage}
+      />
     </Container>
+    // </GradientBackground>
   );
 };
 
