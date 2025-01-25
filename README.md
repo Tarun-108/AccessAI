@@ -1,10 +1,6 @@
 <div>
   <h1>AccesAI - AI-Powered Accessibility Enhancement</h1>
 
-  <p><strong>Team Name</strong>: Cache Me If You Can</p>
-  <p><strong>Team Code</strong>: AG02</p>
-  <p><strong>Team Leader</strong>: Anurag Mishra</p>
-
   <hr>
 
   <h2>Table of Contents</h2>
